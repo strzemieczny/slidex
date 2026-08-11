@@ -9,25 +9,30 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-    private pool: Pool;
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  private pool: Pool;
 
-    constructor() {
-        const connectionString = process.env.DATABASE_URL || 'postgresql://slidex_user:slidex_password@localhost:25432/slidex_db?schema=public';
+  constructor() {
+    const connectionString =
+      process.env.DATABASE_URL ||
+      'postgresql://slidex_user:slidex_password@localhost:25432/slidex_db?schema=public';
 
-        const pool = new Pool({ connectionString });
-        const adapter = new PrismaPg(pool);
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaPg(pool);
 
-        super({ adapter });
-        this.pool = pool;
-    }
+    super({ adapter });
+    this.pool = pool;
+  }
 
-    async onModuleInit() {
-        await this.$connect();
-    }
+  async onModuleInit() {
+    await this.$connect();
+  }
 
-    async onModuleDestroy() {
-        await this.$disconnect();
-        await this.pool.end();
-    }
+  async onModuleDestroy() {
+    await this.$disconnect();
+    await this.pool.end();
+  }
 }

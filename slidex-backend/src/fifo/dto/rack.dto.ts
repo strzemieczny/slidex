@@ -3,6 +3,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsInt,
   Min,
 } from 'class-validator';
 
@@ -24,12 +25,17 @@ export class CreateRackDto {
   totalColumns!: number;
 
   @IsOptional()
-  @IsNumber()
+  @IsInt()
   laneCapacity?: number;
 
   @IsOptional()
   @IsString()
   groupId?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  position?: number;
 }
 
 export class UpdateRackDto {
@@ -52,10 +58,15 @@ export class UpdateRackDto {
   totalColumns?: number;
 
   @IsOptional()
-  @IsNumber()
+  @IsInt()
   laneCapacity?: number;
 
   @IsOptional()
   @IsString()
   groupId?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  position?: number;
 }

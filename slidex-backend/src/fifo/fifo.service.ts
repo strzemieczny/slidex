@@ -1,40 +1,22 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, MaterialStatus, Prisma } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
+import { Injectable } from '@nestjs/common';
+import { MaterialStatus, Prisma } from '@prisma/client';
 import { ScanInDto, ScanOutDto } from './dto/scan.dto';
 import { CreateRackDto, UpdateRackDto } from './dto/rack.dto';
 import { FifoGateway } from './fifo.gateway';
-
-dotenv.config();
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
-export class FifoService implements OnModuleInit, OnModuleDestroy {
-  private prisma: PrismaClient;
-  private pool: Pool;
-
-  constructor(private readonly fifoGateway: FifoGateway) {
-    const connectionString = process.env.DATABASE_URL;
-    this.pool = new Pool({ connectionString });
-    const adapter = new PrismaPg(this.pool);
-    this.prisma = new PrismaClient({ adapter });
-  }
-
-  async onModuleInit() {
-    await this.prisma.$connect();
-  }
-
-  async onModuleDestroy() {
-    await this.prisma.$disconnect();
-    await this.pool.end();
-  }
+export class FifoService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fifoGateway: FifoGateway,
+  ) {}
 
   // -------------------------------------------------------------
   // 0. OBSŁUGA STREF / GRUP (RACK GROUPS)
   // -------------------------------------------------------------
   async getGroups() {
-    return await this.prisma.rackGroup.findMany({
+    return this.prisma.rackGroup.findMany({
       include: {
         racks: {
           orderBy: { position: 'asc' }, // 🚀 Sortujemy regały wewnątrz strefy wg kolejności
@@ -45,7 +27,7 @@ export class FifoService implements OnModuleInit, OnModuleDestroy {
   }
 
   async createGroup(data: { code: string; name: string }) {
-    return await this.prisma.rackGroup.create({
+    return this.prisma.rackGroup.create({
       data: {
         code: data.code.toUpperCase().trim(),
         name: data.name.trim(),
@@ -63,7 +45,7 @@ export class FifoService implements OnModuleInit, OnModuleDestroy {
       updateData.name = data.name.trim();
     }
 
-    return await this.prisma.rackGroup.update({
+    return this.prisma.rackGroup.update({
       where: { id },
       data: updateData,
       include: {
@@ -76,13 +58,13 @@ export class FifoService implements OnModuleInit, OnModuleDestroy {
 
   async deleteGroup(id: string) {
     // Odfalowywanie powiązań z regałami przed usunięciem strefy
-    await this.prisma.rack.updateMany({
-      where: { groupId: id },
-      data: { groupId: null },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      await tx.rack.updateMany({
+        where: { groupId: id },
+        data: { groupId: null },
+      });
 
-    return await this.prisma.rackGroup.delete({
-      where: { id },
+      return tx.rackGroup.delete({ where: { id } });
     });
   }
 
@@ -90,7 +72,7 @@ export class FifoService implements OnModuleInit, OnModuleDestroy {
   // 1. POBIERANIE PODGLĄDU REGAŁÓW (REST / Overview)
   // -------------------------------------------------------------
   async getRackOverview(rackCode?: string) {
-    return await this.prisma.rack.findMany({
+    return this.prisma.rack.findMany({
       where: rackCode ? { code: rackCode } : undefined,
       orderBy: { position: 'asc' }, // 🚀 Pobieranie regałów posortowanych wg pozycji
       include: {
@@ -121,12 +103,14 @@ export class FifoService implements OnModuleInit, OnModuleDestroy {
   // 2. SKANOWANIE WJAZDOWE (SCAN IN z blokadą 1 P/N per Tor)
   // -------------------------------------------------------------
   async scanIn(dto: ScanInDto) {
-    const lane = await this.prisma.chuteLane.findFirst({
+    const lane = await this.prisma.chuteLane.findUnique({
       where: { code: dto.laneCode },
-      include: {
+      select: {
+        id: true,
         materials: {
           where: { status: MaterialStatus.IN_CHUTE },
           take: 1,
+          select: { partNumber: true },
         },
       },
     });
@@ -170,12 +154,14 @@ export class FifoService implements OnModuleInit, OnModuleDestroy {
   // 3. SKANOWANIE WYJAZDOWE (SCAN OUT z Kontrolą FIFO)
   // -------------------------------------------------------------
   async scanOut(dto: ScanOutDto) {
-    const lane = await this.prisma.chuteLane.findFirst({
+    const lane = await this.prisma.chuteLane.findUnique({
       where: { code: dto.laneCode },
-      include: {
+      select: {
+        rackId: true,
         materials: {
           where: { status: MaterialStatus.IN_CHUTE },
           orderBy: { entryTime: 'asc' },
+          take: 1,
         },
       },
     });
@@ -223,48 +209,43 @@ export class FifoService implements OnModuleInit, OnModuleDestroy {
   // -------------------------------------------------------------
   // 4. ADMIN: ZARZĄDZANIE REGAŁAMI (CRUD)
   // -------------------------------------------------------------
-  async createRack(
-    dto: CreateRackDto & { groupId?: string; position?: number },
-  ) {
-    const rack = await this.prisma.rack.create({
-      data: {
-        code: dto.code.toUpperCase().trim(),
-        name: dto.name.trim(),
-        groupId: dto.groupId || null,
-        position: dto.position !== undefined ? Number(dto.position) : 0, // 🚀 Nowe pole position
-        totalShelves: Number(dto.totalShelves),
-        totalColumns: Number(dto.totalColumns),
-        laneCapacity: Number(dto.laneCapacity || 10),
-      },
-    });
+  async createRack(dto: CreateRackDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const rack = await tx.rack.create({
+        data: {
+          code: dto.code.toUpperCase().trim(),
+          name: dto.name.trim(),
+          groupId: dto.groupId || null,
+          position: dto.position !== undefined ? Number(dto.position) : 0,
+          totalShelves: Number(dto.totalShelves),
+          totalColumns: Number(dto.totalColumns),
+          laneCapacity: Number(dto.laneCapacity || 10),
+        },
+      });
 
-    const lanesData: Prisma.ChuteLaneCreateManyInput[] = [];
+      const lanesData: Prisma.ChuteLaneCreateManyInput[] = [];
 
-    for (let shelf = 1; shelf <= dto.totalShelves; shelf++) {
-      for (let col = 1; col <= dto.totalColumns; col++) {
-        lanesData.push({
-          code: `${rack.code}-S${shelf}-C${col}`,
-          shelf: shelf,
-          column: col,
-          rackId: rack.id,
-        });
+      for (let shelf = 1; shelf <= dto.totalShelves; shelf++) {
+        for (let col = 1; col <= dto.totalColumns; col++) {
+          lanesData.push({
+            code: `${rack.code}-S${shelf}-C${col}`,
+            shelf,
+            column: col,
+            rackId: rack.id,
+          });
+        }
       }
-    }
 
-    await this.prisma.chuteLane.createMany({
-      data: lanesData,
-    });
+      await tx.chuteLane.createMany({ data: lanesData });
 
-    return await this.prisma.rack.findUnique({
-      where: { id: rack.id },
-      include: { lanes: true, group: true },
+      return tx.rack.findUnique({
+        where: { id: rack.id },
+        include: { lanes: true, group: true },
+      });
     });
   }
 
-  async updateRack(
-    id: string,
-    dto: UpdateRackDto & { groupId?: string | null; position?: number },
-  ) {
+  async updateRack(id: string, dto: UpdateRackDto) {
     const updateData: Prisma.RackUpdateInput = {};
 
     if (dto.name) {
@@ -289,7 +270,7 @@ export class FifoService implements OnModuleInit, OnModuleDestroy {
       updateData.position = Number(dto.position);
     }
 
-    return await this.prisma.rack.update({
+    return this.prisma.rack.update({
       where: { id },
       data: updateData,
       include: {
@@ -300,11 +281,7 @@ export class FifoService implements OnModuleInit, OnModuleDestroy {
   }
 
   async deleteRack(id: string) {
-    await this.prisma.chuteLane.deleteMany({
-      where: { rackId: id },
-    });
-
-    return await this.prisma.rack.delete({
+    return this.prisma.rack.delete({
       where: { id },
     });
   }

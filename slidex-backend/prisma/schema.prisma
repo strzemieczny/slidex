@@ -61,7 +61,7 @@ model ChuteLane {
 
   shelf  Int // Numer półki (X)
   column Int // Numer kolumny (Y)
-  code   String // Automatyczny kod adresowy, np. "RACK-01-S2-C3" (Regał 1, Półka 2, Kolumna 3)
+  code   String @unique // Automatyczny kod adresowy, np. "RACK-01-S2-C3" (Regał 1, Półka 2, Kolumna 3)
 
   materials Material[]
 
@@ -85,7 +85,7 @@ model Material {
   updatedAt DateTime @updatedAt
 
   @@index([barcode])
-  @@index([laneId])
+  @@index([laneId, status, entryTime])
 }
 
 // 4. LOG ZŁAMAŃ FIFO

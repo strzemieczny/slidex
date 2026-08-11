@@ -1,12 +1,30 @@
-// src/fifo/dto/scan.dto.ts
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+
 export class ScanInDto {
-  laneCode: string; // np. "RACK-01-S1-C1"
-  barcode: string; // np. "BOX-999"
-  partNumber: string; // np. "PN-99281-A"
-  quantity?: number; // 👈 NOWE POLE: opcjonalna ilość (domyślnie 1)
+  @IsString()
+  @IsNotEmpty()
+  laneCode!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  barcode!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  partNumber!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  quantity?: number;
 }
 
 export class ScanOutDto {
-  laneCode: string;
-  barcode: string;
+  @IsString()
+  @IsNotEmpty()
+  laneCode!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  barcode!: string;
 }

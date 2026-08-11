@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FifoService } from './fifo.service';
 import { FifoGateway } from './fifo.gateway';
+import { PrismaService } from '../../prisma/prisma.service';
 
 describe('FifoService', () => {
   let service: FifoService;
@@ -14,6 +15,7 @@ describe('FifoService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FifoService,
+        { provide: PrismaService, useValue: {} },
         { provide: FifoGateway, useValue: fifoGatewayMock },
       ],
     }).compile();

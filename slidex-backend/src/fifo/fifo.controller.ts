@@ -17,6 +17,7 @@ import { join } from 'path';
 import { FifoService } from './fifo.service';
 import { ScanInDto, ScanOutDto } from './dto/scan.dto';
 import { CreateRackDto, UpdateRackDto } from './dto/rack.dto';
+import { CreateGroupDto, UpdateGroupDto } from './dto/group.dto';
 
 @Controller('fifo')
 export class FifoController {
@@ -84,23 +85,17 @@ export class FifoController {
   // -------------------------------------------------------------
 
   @Post('racks')
-  async createRack(@Body() dto: CreateRackDto & { groupId?: string }) {
+  async createRack(@Body() dto: CreateRackDto) {
     return await this.fifoService.createRack(dto);
   }
 
   @Patch('racks/:id')
-  async updateRackPatch(
-    @Param('id') id: string,
-    @Body() dto: UpdateRackDto & { groupId?: string | null },
-  ) {
+  async updateRackPatch(@Param('id') id: string, @Body() dto: UpdateRackDto) {
     return await this.fifoService.updateRack(id, dto);
   }
 
   @Put('racks/:id')
-  async updateRackPut(
-    @Param('id') id: string,
-    @Body() dto: UpdateRackDto & { groupId?: string | null },
-  ) {
+  async updateRackPut(@Param('id') id: string, @Body() dto: UpdateRackDto) {
     return await this.fifoService.updateRack(id, dto);
   }
 
@@ -119,23 +114,20 @@ export class FifoController {
   }
 
   @Post('groups')
-  async createGroup(@Body() body: { code: string; name: string }) {
+  async createGroup(@Body() body: CreateGroupDto) {
     return await this.fifoService.createGroup(body);
   }
 
   @Patch('groups/:id')
   async updateGroupPatch(
     @Param('id') id: string,
-    @Body() body: { code?: string; name?: string },
+    @Body() body: UpdateGroupDto,
   ) {
     return await this.fifoService.updateGroup(id, body);
   }
 
   @Put('groups/:id')
-  async updateGroupPut(
-    @Param('id') id: string,
-    @Body() body: { code?: string; name?: string },
-  ) {
+  async updateGroupPut(@Param('id') id: string, @Body() body: UpdateGroupDto) {
     return await this.fifoService.updateGroup(id, body);
   }
 
