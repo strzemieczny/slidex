@@ -35,9 +35,9 @@ services:
       - PORT=3000
       - NODE_ENV=production
       - DATABASE_URL=postgresql://slidex_user:slidex_password@postgres-dev:5432/slidex_db?schema=public
-    # DATABASE_URL jest pobierany przez prisma.config.ts. Brak --accept-data-loss
-    # sprawia, że Prisma przerwie start zamiast zaakceptować destrukcyjną zmianę.
-    command: sh -c "npx prisma db push && if [ -f dist/src/main.js ]; then exec node dist/src/main.js; else exec node dist/main.js; fi"
+    # Kontrolowany push najpierw sprawdza duplikaty ChuteLane.code. Nie używamy
+    # --accept-data-loss, więc inne potencjalnie destrukcyjne zmiany nadal blokują start.
+    command: sh -c "node prisma/safe-db-push.cjs && if [ -f dist/src/main.js ]; then exec node dist/src/main.js; else exec node dist/main.js; fi"
     depends_on:
       postgres-dev:
         condition: service_healthy
