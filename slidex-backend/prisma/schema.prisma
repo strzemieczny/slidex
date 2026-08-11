@@ -1,0 +1,100 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum MaterialStatus {
+  IN_CHUTE // W ześlizgu/regale
+  CONSUMED // Prawidłowo pobrany
+  REMOVED // Usunięty/złomowany
+}
+
+enum RackStatus {
+  OK
+  WARNING_LOW
+  FULL
+  BLOCKED
+}
+
+// 0. GRUPA / STREFA (RACK GROUP) - np. "P40D", "SMT-LINE-01"
+model RackGroup {
+  id    String @id @default(uuid())
+  code  String @unique // np. "P40D"
+  name  String // np. "Linia P40D - Audi Sensors"
+  racks Rack[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 1. REGAŁ (RACK) - Cała konstrukcja fizyczna
+model Rack {
+  id   String  @id @default(uuid())
+  code String  @unique // np. "RACK-01"
+  name String? // np. "Regał Buforowy Linia Montażu"
+
+  // 🔗 Powiązanie ze Strefą / Grupą (opcjonalne)
+  groupId String?
+  group   RackGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  totalShelves Int        @default(3) // X: Liczba półek/poziomów
+  totalColumns Int        @default(4) // Y: Liczba kolumn
+  laneCapacity Int        @default(5) // Z: Pojemność jednego toru (ile magazynków/pojemników na głębokość)
+  position     Int        @default(0) // 🚀 DODANO: Kolejność regału w strefie/hali
+  status       RackStatus @default(OK)
+
+  lanes      ChuteLane[]
+  violations FifoViolationLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 2. TOR / ZEŚLIZG (LANE) - Pojedyncza lokalizacja [Półka, Kolumna]
+model ChuteLane {
+  id     String @id @default(uuid())
+  rackId String
+  rack   Rack   @relation(fields: [rackId], references: [id], onDelete: Cascade)
+
+  shelf  Int // Numer półki (X)
+  column Int // Numer kolumny (Y)
+  code   String // Automatyczny kod adresowy, np. "RACK-01-S2-C3" (Regał 1, Półka 2, Kolumna 3)
+
+  materials Material[]
+
+  @@unique([rackId, shelf, column]) // Gwarancja unikalności położenia w regale
+}
+
+// 3. MATERIAŁ / POJEMNIK
+model Material {
+  id         String         @id @default(uuid())
+  barcode    String // Kod kreskowy pojemnika
+  partNumber String // Indeks materiałowy (PN)
+  quantity   Int            @default(1) // Ilość sztuk w pojemniku
+  status     MaterialStatus @default(IN_CHUTE)
+  entryTime  DateTime       @default(now())
+  exitTime   DateTime?
+
+  laneId String
+  lane   ChuteLane @relation(fields: [laneId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barcode])
+  @@index([laneId])
+}
+
+// 4. LOG ZŁAMAŃ FIFO
+model FifoViolationLog {
+  id              String   @id @default(uuid())
+  rackId          String
+  rack            Rack     @relation(fields: [rackId], references: [id], onDelete: Cascade)
+  scannedBarcode  String
+  expectedBarcode String
+  locationCode    String // Gdzie nastąpił błąd (kod toru)
+  createdAt       DateTime @default(now())
+}

@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+    /* Definiujemy markowe kolory BorgWarner */
+    --color-bw-navy: #051729;
+    --color-bw-cyan: #2EFAD9;
+    --color-bw-sand: #F5F0EB;
+
+    /* Dodajemy kolory pomocnicze pasujące do palety */
+    --color-bw-navy-light: #0d253f;
+    --color-bw-gray: #6b7280;
+    --color-bw-dark: #111827;
+}

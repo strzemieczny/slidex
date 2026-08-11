@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Tło - Głęboki granat SLIDEX -->
+    <linearGradient id="bgGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#121829" />
+      <stop offset="100%" stop-color="#060913" />
+    </linearGradient>
+
+    <!-- Turkusowy akcent SLIDEX (Cyan Glow) -->
+    <linearGradient id="cyanGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2EFAD9" />
+      <stop offset="100%" stop-color="#00B894" />
+    </linearGradient>
+
+    <!-- Gradient Pudełka / Materiału -->
+    <linearGradient id="boxGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+
+    <!-- Efekt Neonu / Światła -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Base / Obrys Ikony z zaokrąglonymi rogami (Squircle) -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGlow)" stroke="#1E293B" stroke-width="8" />
+
+  <!-- Tło - Siatka regału (Subtelne linie technologiczne) -->
+  <path d="M 96 160 H 416 M 96 256 H 416 M 96 352 H 416" stroke="#1E293B" stroke-width="4" stroke-dasharray="8 8" opacity="0.6" />
+
+  <!-- DYNAMICZNE TORY CHUTE / PRZEPŁYW FIFO (Główne paski świetlne) -->
+  <g filter="url(#neonGlow)">
+    <!-- Górny Tor (Przepływ) -->
+    <path d="M 120 180 L 220 180 L 320 280 L 392 280" fill="none" stroke="url(#cyanGlow)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" />
+    
+    <!-- Dolny Tor (Główny akcent) -->
+    <path d="M 120 256 L 240 256 L 340 356 L 392 356" fill="none" stroke="url(#cyanGlow)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- PUDŁO / BOX FIFO (W centrum akcji) -->
+  <g transform="translate(230, 195)">
+    <!-- Cień Pudełka -->
+    <rect x="0" y="0" width="110" height="90" rx="16" fill="#000000" opacity="0.5" transform="translate(8, 12)" />
+    
+    <!-- Obudowa Boxa -->
+    <rect x="0" y="0" width="110" height="90" rx="16" fill="url(#boxGradient)" stroke="#2EFAD9" stroke-width="6" />
+    
+    <!-- Taśma / Etykieta na Boxie -->
+    <path d="M 35 0 V 90" stroke="#2EFAD9" stroke-width="4" opacity="0.3" />
+    <rect x="50" y="25" width="40" height="24" rx="4" fill="#2EFAD9" />
+  </g>
+
+  <!-- SZYBKOŚĆ / STRZAŁKI PRZEPŁYWU (Wektor wejścia/wyjścia) -->
+  <path d="M 130 256 L 160 230 V 282 Z" fill="#2EFAD9" />
+  <path d="M 360 356 L 330 330 V 382 Z" fill="#2EFAD9" />
+
+  <!-- Drobne punkty led / statusowe na dole -->
+  <circle cx="216" cy="420" r="8" fill="#2EFAD9" filter="url(#neonGlow)" />
+  <circle cx="256" cy="420" r="8" fill="#2EFAD9" opacity="0.5" />
+  <circle cx="296" cy="420" r="8" fill="#2EFAD9" opacity="0.2" />
+</svg>
