@@ -16,6 +16,7 @@ import {
     RefreshCw,
     Layers,
     Grid,
+    Box,
     CheckCircle2,
     AlertTriangle,
     ArrowLeft,
@@ -46,8 +47,58 @@ export interface Rack {
     groupId?: string | null;
     totalShelves: number;
     totalColumns: number;
+    laneCapacity: number;
     position?: number;
     lanes?: Lane[];
+}
+
+function Rack3DPreview({ width, height, depth }: { width: number; height: number; depth: number }) {
+    const safeWidth = Math.max(1, width);
+    const safeHeight = Math.max(1, height);
+    const safeDepth = Math.max(1, depth);
+    const perspectiveDepth = Math.min(34, 10 + safeDepth * 2);
+
+    return (
+        <div className="rounded-lg border border-bw-cyan/20 bg-slate-900/70 p-2">
+            <div className="mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-bw-cyan">
+                    <Box className="h-3.5 w-3.5" /> Podgląd 3D
+                </span>
+                <span className="font-mono text-[9px] font-bold text-slate-400">
+                    {safeWidth} W × {safeHeight} H × {safeDepth} D
+                </span>
+            </div>
+            <div className="relative mx-auto h-32 max-w-64" style={{ perspective: '500px' }}>
+                <div
+                    className="absolute bottom-3 left-1/2 grid w-[72%] -translate-x-1/2 gap-px border-2 border-bw-cyan bg-bw-cyan/30 p-px shadow-[0_0_18px_rgba(46,250,217,0.12)]"
+                    style={{
+                        height: `${Math.min(92, 44 + safeHeight * 6)}%`,
+                        gridTemplateColumns: `repeat(${safeWidth}, minmax(0, 1fr))`,
+                        gridTemplateRows: `repeat(${safeHeight}, minmax(0, 1fr))`,
+                        transform: 'translateX(-50%) rotateY(-5deg)',
+                        transformStyle: 'preserve-3d',
+                    }}
+                >
+                    {Array.from({ length: safeWidth * safeHeight }, (_, index) => (
+                        <div key={index} className="min-h-0 bg-slate-950/95" />
+                    ))}
+                </div>
+                <div
+                    className="absolute bottom-3 border-y-2 border-r-2 border-bw-cyan/70 bg-bw-cyan/10"
+                    style={{
+                        left: '86%',
+                        width: `${perspectiveDepth}px`,
+                        height: `${Math.min(92, 44 + safeHeight * 6)}%`,
+                        transform: 'skewY(-35deg)',
+                        transformOrigin: 'bottom left',
+                    }}
+                />
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase text-slate-500">Szerokość</span>
+                <span className="absolute left-0 top-1/2 -rotate-90 text-[8px] font-bold uppercase text-slate-500">Wysokość</span>
+                <span className="absolute bottom-1 right-0 -rotate-[28deg] text-[8px] font-bold uppercase text-slate-500">Głębokość</span>
+            </div>
+        </div>
+    );
 }
 
 export default function Config() {
@@ -70,6 +121,7 @@ export default function Config() {
     const [selectedGroupId, setSelectedGroupId] = useState<string>('');
     const [shelvesCount, setShelvesCount] = useState<number>(4);
     const [colsCount, setColsCount] = useState<number>(6);
+    const [depthCount, setDepthCount] = useState<number>(5);
 
     // 🔵 Stan Edycji Regału
     const [editingRackId, setEditingRackId] = useState<string | null>(null);
@@ -78,6 +130,7 @@ export default function Config() {
     const [editRackGroupId, setEditRackGroupId] = useState<string>('');
     const [editShelvesCount, setEditShelvesCount] = useState<number>(4);
     const [editColsCount, setEditColsCount] = useState<number>(6);
+    const [editDepthCount, setEditDepthCount] = useState<number>(5);
 
     const [feedback, setFeedback] = useState<{
         type: 'success' | 'error';
@@ -222,6 +275,7 @@ export default function Config() {
                     groupId: selectedGroupId || null,
                     totalShelves: Number(shelvesCount),
                     totalColumns: Number(colsCount),
+                    laneCapacity: Number(depthCount),
                     position: racks.length, // Nowy regał trafia na koniec
                 }),
             });
@@ -245,6 +299,7 @@ export default function Config() {
         setEditRackGroupId(r.groupId || '');
         setEditShelvesCount(r.totalShelves);
         setEditColsCount(r.totalColumns);
+        setEditDepthCount(r.laneCapacity ?? 5);
     };
 
     const handleSaveRackEdit = async (id: string) => {
@@ -258,6 +313,7 @@ export default function Config() {
                     groupId: editRackGroupId || null,
                     totalShelves: Number(editShelvesCount),
                     totalColumns: Number(editColsCount),
+                    laneCapacity: Number(editDepthCount),
                 }),
             });
 
@@ -537,7 +593,7 @@ export default function Config() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <div>
                                         <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Przypisz Strefę:</label>
                                         <select
@@ -553,8 +609,22 @@ export default function Config() {
                                             ))}
                                         </select>
                                     </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2">
                                     <div>
-                                        <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Półek (S):</label>
+                                        <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Szerokość (kolumny):</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="12"
+                                            value={colsCount}
+                                            onChange={(e) => setColsCount(Number(e.target.value))}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-1 text-xs font-mono text-white focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Wysokość (półki):</label>
                                         <input
                                             type="number"
                                             min="1"
@@ -565,24 +635,26 @@ export default function Config() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Kolumn (C):</label>
+                                        <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Głębokość (pojemniki):</label>
                                         <input
                                             type="number"
                                             min="1"
-                                            max="12"
-                                            value={colsCount}
-                                            onChange={(e) => setColsCount(Number(e.target.value))}
+                                            max="20"
+                                            value={depthCount}
+                                            onChange={(e) => setDepthCount(Number(e.target.value))}
                                             className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-1 text-xs font-mono text-white focus:outline-none"
                                         />
                                     </div>
                                 </div>
+
+                                <Rack3DPreview width={colsCount} height={shelvesCount} depth={depthCount} />
 
                                 <button
                                     type="submit"
                                     className="w-full bg-bw-cyan text-slate-950 font-black text-xs py-1.5 rounded-md hover:bg-bw-cyan/90 transition-all active:scale-98 flex items-center justify-center gap-1 cursor-pointer"
                                 >
                                     <Grid className="w-3.5 h-3.5" />
-                                    <span>Utwórz Regał z Siatką ({shelvesCount * colsCount} torów)</span>
+                                    <span>Utwórz Regał 3D ({colsCount} × {shelvesCount} × {depthCount})</span>
                                 </button>
                             </form>
 
@@ -629,7 +701,7 @@ export default function Config() {
                                                                                 placeholder="Nazwa Regału"
                                                                             />
                                                                         </div>
-                                                                        <div className="grid grid-cols-3 gap-1.5">
+                                                                        <div className="grid grid-cols-4 gap-1.5">
                                                                             <select
                                                                                 value={editRackGroupId}
                                                                                 onChange={(e) => setEditRackGroupId(e.target.value)}
@@ -645,22 +717,32 @@ export default function Config() {
                                                                             <input
                                                                                 type="number"
                                                                                 min="1"
-                                                                                max="10"
-                                                                                value={editShelvesCount}
-                                                                                onChange={(e) => setEditShelvesCount(Number(e.target.value))}
-                                                                                className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white"
-                                                                                title="Liczba Półek"
-                                                                            />
-                                                                            <input
-                                                                                type="number"
-                                                                                min="1"
                                                                                 max="12"
                                                                                 value={editColsCount}
                                                                                 onChange={(e) => setEditColsCount(Number(e.target.value))}
                                                                                 className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white"
-                                                                                title="Liczba Kolumn"
+                                                                                title="Szerokość (liczba kolumn)"
+                                                                            />
+                                                                            <input
+                                                                                type="number"
+                                                                                min="1"
+                                                                                max="10"
+                                                                                value={editShelvesCount}
+                                                                                onChange={(e) => setEditShelvesCount(Number(e.target.value))}
+                                                                                className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white"
+                                                                                title="Wysokość (liczba półek)"
+                                                                            />
+                                                                            <input
+                                                                                type="number"
+                                                                                min="1"
+                                                                                max="20"
+                                                                                value={editDepthCount}
+                                                                                onChange={(e) => setEditDepthCount(Number(e.target.value))}
+                                                                                className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white"
+                                                                                title="Głębokość (pojemność toru)"
                                                                             />
                                                                         </div>
+                                                                        <Rack3DPreview width={editColsCount} height={editShelvesCount} depth={editDepthCount} />
                                                                         <div className="flex justify-end gap-1.5 pt-1">
                                                                             <button
                                                                                 onClick={() => void handleSaveRackEdit(r.id)}
@@ -706,7 +788,7 @@ export default function Config() {
                                                                             </span>
                                                                             <span className="text-slate-500 text-[10px] font-bold flex items-center gap-0.5">
                                                                                 <Layers className="w-3 h-3 text-slate-400" />
-                                                                                {r.totalShelves}x{r.totalColumns}
+                                                                                {r.totalColumns}W × {r.totalShelves}H × {r.laneCapacity ?? 5}D
                                                                             </span>
                                                                             <button
                                                                                 onClick={() => handleStartEditRack(r)}

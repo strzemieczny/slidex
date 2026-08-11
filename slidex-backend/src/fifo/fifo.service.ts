@@ -265,6 +265,9 @@ export class FifoService {
     if (dto.totalColumns) {
       updateData.totalColumns = Number(dto.totalColumns);
     }
+    if (dto.laneCapacity !== undefined) {
+      updateData.laneCapacity = Number(dto.laneCapacity);
+    }
     // 🚀 KLUCZOWA POPRAWKA: Zapisywanie pozycji w bazie danych
     if (dto.position !== undefined) {
       updateData.position = Number(dto.position);

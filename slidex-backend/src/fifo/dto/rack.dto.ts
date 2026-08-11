@@ -26,6 +26,7 @@ export class CreateRackDto {
 
   @IsOptional()
   @IsInt()
+  @Min(1)
   laneCapacity?: number;
 
   @IsOptional()
@@ -59,6 +60,7 @@ export class UpdateRackDto {
 
   @IsOptional()
   @IsInt()
+  @Min(1)
   laneCapacity?: number;
 
   @IsOptional()
