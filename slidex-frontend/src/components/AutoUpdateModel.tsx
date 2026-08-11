@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config/api';
 import { Download, RefreshCw, AlertCircle } from 'lucide-react';
 
-const CURRENT_APP_VERSION = '1.0.0';
+const CURRENT_APP_VERSION = '2.0.0';
 
 interface VersionInfo {
     latestVersion: string;
