@@ -18,7 +18,7 @@ export class PrismaService
   constructor() {
     const connectionString =
       process.env.DATABASE_URL ||
-      'postgresql://slidex_user:slidex_password@localhost:25432/slidex_db?schema=public';
+      'postgresql://slidex_user:slidex_password@localhost:5432/slidex_db?schema=public';
 
     const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);

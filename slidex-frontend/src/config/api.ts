@@ -1,4 +1,4 @@
-const DEFAULT_SERVER_IP = '10.237.121.225';
+const DEFAULT_SERVER_IP = '192.168.176.177';
 const PORT = '3000';
 
 /**

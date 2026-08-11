@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: slidex_password
       POSTGRES_DB: slidex_db
     ports:
-      - "35432:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -23,39 +23,39 @@ services:
       retries: 5
 
   # 🟢 BACKEND: NestJS
-  backend:
-    build:
-      context: ./slidex-backend
-      dockerfile: Dockerfile
-    container_name: slidex-dev-backend
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://slidex_user:slidex_password@postgres-dev:5432/slidex_db?schema=public
-    # 👈 Wskazujemy ciąg połączenia bezpośrednio do komendy prisma db push
-    command: sh -c "npx prisma db push --url 'postgresql://slidex_user:slidex_password@postgres-dev:5432/slidex_db?schema=public' && node dist/src/main.js"
-    depends_on:
-      postgres-dev:
-        condition: service_healthy
-    networks:
-      - slidex-network
+#  backend:
+#    build:
+#      context: ./slidex-backend
+#      dockerfile: Dockerfile
+#    container_name: slidex-dev-backend
+#    restart: always
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - PORT=3000
+#      - NODE_ENV=production
+#      - DATABASE_URL=postgresql://slidex_user:slidex_password@postgres-dev:5432/slidex_db?schema=public
+#    # 👈 Wskazujemy ciąg połączenia bezpośrednio do komendy prisma db push
+#    command: sh -c "npx prisma db push --url 'postgresql://slidex_user:slidex_password@postgres-dev:5432/slidex_db?schema=public' && node dist/src/main.js"
+#    depends_on:
+#      postgres-dev:
+#        condition: service_healthy
+#    networks:
+#      - slidex-network
 
   # 🔵 FRONTEND: React (Vite) + Nginx
-  frontend:
-    build:
-      context: ./slidex-frontend
-      dockerfile: Dockerfile
-    container_name: slidex-dev-frontend
-    restart: always
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - slidex-network
+#  frontend:
+#    build:
+#      context: ./slidex-frontend
+#      dockerfile: Dockerfile
+#    container_name: slidex-dev-frontend
+#    restart: always
+#    ports:
+#      - "80:80"
+#    depends_on:
+#      - backend
+#    networks:
+#      - slidex-network
 
 volumes:
   postgres_data:
