@@ -45,6 +45,7 @@ model Rack {
   laneCapacity Int        @default(5) // Z: Pojemność jednego toru (ile magazynków/pojemników na głębokość)
   position     Int        @default(0) // 🚀 DODANO: Kolejność regału w strefie/hali
   status       RackStatus @default(OK)
+  auditStartedAt DateTime? // Aktywny audyt blokuje standardowe operacje skanera
 
   lanes      ChuteLane[]
   violations FifoViolationLog[]

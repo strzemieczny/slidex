@@ -1,0 +1,1 @@
+ALTER TABLE "Rack" ADD COLUMN "auditStartedAt" TIMESTAMP(3);

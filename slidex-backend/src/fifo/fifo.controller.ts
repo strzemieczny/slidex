@@ -15,7 +15,7 @@ import { Response } from 'express';
 import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
 import { FifoService } from './fifo.service';
-import { ScanInDto, ScanOutDto } from './dto/scan.dto';
+import { RackAuditDto, ScanInDto, ScanOutDto } from './dto/scan.dto';
 import { CreateRackDto, UpdateRackDto } from './dto/rack.dto';
 import { CreateGroupDto, UpdateGroupDto } from './dto/group.dto';
 
@@ -31,7 +31,7 @@ export class FifoController {
   @Get('app-version')
   getAppVersion() {
     return {
-      latestVersion: '1.0.0', // 👈 Zmieniaj ten numer przy wypuszczaniu nowej wersji
+      latestVersion: '2.0.0', // 👈 Zmieniaj ten numer przy wypuszczaniu nowej wersji
       required: false, // true = brak możliwości pominięcia, false = opcjonalna
       notes:
         'Poprawki stabilności skanera, zoptymalizowany widok oraz szybka synchronizacja FIFO.',
@@ -78,6 +78,21 @@ export class FifoController {
   @Get('overview')
   async getOverview(@Query('rackCode') rackCode?: string) {
     return await this.fifoService.getRackOverview(rackCode);
+  }
+
+  @Post('racks/:id/audit')
+  async auditRack(@Param('id') id: string, @Body() dto: RackAuditDto) {
+    return await this.fifoService.auditRack(id, dto);
+  }
+
+  @Post('racks/:id/audit/start')
+  async startRackAudit(@Param('id') id: string) {
+    return await this.fifoService.startRackAudit(id);
+  }
+
+  @Delete('racks/:id/audit')
+  async cancelRackAudit(@Param('id') id: string) {
+    return await this.fifoService.cancelRackAudit(id);
   }
 
   // -------------------------------------------------------------

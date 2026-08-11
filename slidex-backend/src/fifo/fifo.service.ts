@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { MaterialStatus, Prisma } from '@prisma/client';
-import { ScanInDto, ScanOutDto } from './dto/scan.dto';
+import { RackAuditDto, ScanInDto, ScanOutDto } from './dto/scan.dto';
 import { CreateRackDto, UpdateRackDto } from './dto/rack.dto';
 import { FifoGateway } from './fifo.gateway';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -107,6 +112,7 @@ export class FifoService {
       where: { code: dto.laneCode },
       select: {
         id: true,
+        rack: { select: { code: true, auditStartedAt: true } },
         materials: {
           where: { status: MaterialStatus.IN_CHUTE },
           take: 1,
@@ -117,6 +123,12 @@ export class FifoService {
 
     if (!lane) {
       throw new Error(`Tor o kodzie ${dto.laneCode} nie istnieje.`);
+    }
+
+    if (lane.rack.auditStartedAt) {
+      throw new ConflictException(
+        `Regał ${lane.rack.code} jest obecnie audytowany. SCAN IN dla tego regału jest zablokowany.`,
+      );
     }
 
     if (lane.materials && lane.materials.length > 0) {
@@ -158,6 +170,7 @@ export class FifoService {
       where: { code: dto.laneCode },
       select: {
         rackId: true,
+        rack: { select: { code: true, auditStartedAt: true } },
         materials: {
           where: { status: MaterialStatus.IN_CHUTE },
           orderBy: { entryTime: 'asc' },
@@ -166,7 +179,17 @@ export class FifoService {
       },
     });
 
-    if (!lane || lane.materials.length === 0) {
+    if (!lane) {
+      throw new Error(`Tor ${dto.laneCode} nie istnieje.`);
+    }
+
+    if (lane.rack.auditStartedAt) {
+      throw new ConflictException(
+        `Regał ${lane.rack.code} jest obecnie audytowany. SCAN OUT dla tego regału jest zablokowany.`,
+      );
+    }
+
+    if (lane.materials.length === 0) {
       throw new Error(`Tor ${dto.laneCode} jest pusty.`);
     }
 
@@ -204,6 +227,163 @@ export class FifoService {
     this.fifoGateway.notifyLaneUpdated(dto.laneCode, 'OUT');
 
     return updated;
+  }
+
+  async auditRack(rackId: string, dto: RackAuditDto) {
+    const materialIds = dto.items.map((item) => item.materialId);
+    if (new Set(materialIds).size !== materialIds.length) {
+      throw new BadRequestException(
+        'Każdy pojemnik może wystąpić w audycie tylko raz.',
+      );
+    }
+
+    const startedAt = new Date(dto.startedAt);
+    const result = await this.prisma.$transaction(async (tx) => {
+      const rack = await tx.rack.findUnique({
+        where: { id: rackId },
+        select: {
+          id: true,
+          code: true,
+          groupId: true,
+          auditStartedAt: true,
+          lanes: { select: { id: true, code: true } },
+        },
+      });
+      if (!rack) throw new NotFoundException('Wybrany regał nie istnieje.');
+      if (
+        !rack.auditStartedAt ||
+        rack.auditStartedAt.getTime() !== startedAt.getTime()
+      ) {
+        throw new ConflictException(
+          'Ta sesja audytu nie jest już aktywna. Rozpocznij audyt ponownie.',
+        );
+      }
+
+      const laneIds = rack.lanes.map((lane) => lane.id);
+      const auditedMaterials = await tx.material.findMany({
+        where: {
+          id: { in: materialIds },
+          laneId: { in: laneIds },
+          status: MaterialStatus.IN_CHUTE,
+          entryTime: { lte: startedAt },
+        },
+        select: { id: true },
+      });
+
+      if (auditedMaterials.length !== materialIds.length) {
+        throw new BadRequestException(
+          'Co najmniej jedna pozycja nie należy już do tego regału. Odśwież audyt i spróbuj ponownie.',
+        );
+      }
+
+      await Promise.all(
+        dto.items.map((item) =>
+          tx.material.update({
+            where: { id: item.materialId },
+            data: { quantity: item.quantity },
+          }),
+        ),
+      );
+
+      const removed = await tx.material.updateMany({
+        where: {
+          laneId: { in: laneIds },
+          status: MaterialStatus.IN_CHUTE,
+          entryTime: { lte: startedAt },
+          id: { notIn: materialIds },
+        },
+        data: { status: MaterialStatus.REMOVED, exitTime: new Date() },
+      });
+
+      await tx.rack.update({
+        where: { id: rackId },
+        data: { auditStartedAt: null },
+      });
+
+      return {
+        rackId,
+        rackCode: rack.code,
+        groupId: rack.groupId,
+        updated: dto.items.length,
+        removed: removed.count,
+        auditedAt: new Date().toISOString(),
+      };
+    });
+
+    this.fifoGateway.notifyAuditStatus({
+      active: false,
+      rackId,
+      rackCode: result.rackCode,
+      groupId: result.groupId,
+    });
+
+    for (const lane of await this.prisma.chuteLane.findMany({
+      where: { rackId },
+      select: { code: true },
+    })) {
+      this.fifoGateway.notifyLaneUpdated(lane.code, 'OUT');
+    }
+
+    return result;
+  }
+
+  async startRackAudit(rackId: string) {
+    const activeAudit = await this.prisma.rack.findUnique({
+      where: { id: rackId },
+      select: {
+        id: true,
+        code: true,
+        groupId: true,
+        auditStartedAt: true,
+      },
+    });
+    if (!activeAudit) {
+      throw new NotFoundException('Wybrany regał nie istnieje.');
+    }
+    if (activeAudit.auditStartedAt) {
+      this.fifoGateway.notifyAuditStatus({
+        active: true,
+        rackId: activeAudit.id,
+        rackCode: activeAudit.code,
+        groupId: activeAudit.groupId,
+        startedAt: activeAudit.auditStartedAt,
+      });
+      return activeAudit;
+    }
+
+    const rack = await this.prisma.rack.update({
+      where: { id: rackId },
+      data: { auditStartedAt: new Date() },
+      select: {
+        id: true,
+        code: true,
+        groupId: true,
+        auditStartedAt: true,
+      },
+    });
+    this.fifoGateway.notifyAuditStatus({
+      active: true,
+      rackId: rack.id,
+      rackCode: rack.code,
+      groupId: rack.groupId,
+      startedAt: rack.auditStartedAt,
+    });
+    return rack;
+  }
+
+  async cancelRackAudit(rackId: string) {
+    const rack = await this.prisma.rack.update({
+      where: { id: rackId },
+      data: { auditStartedAt: null },
+      select: { id: true, code: true, groupId: true },
+    });
+    this.fifoGateway.notifyAuditStatus({
+      active: false,
+      rackId: rack.id,
+      rackCode: rack.code,
+      groupId: rack.groupId,
+    });
+    return { cancelled: true };
   }
 
   // -------------------------------------------------------------

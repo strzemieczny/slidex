@@ -62,6 +62,20 @@ export class FifoGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  notifyAuditStatus(data: {
+    active: boolean;
+    rackId: string;
+    rackCode: string;
+    groupId: string | null;
+    startedAt?: Date | null;
+  }) {
+    this.server.emit('audit:status', {
+      ...data,
+      startedAt: data.startedAt?.toISOString() || null,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   @SubscribeMessage('pick:highlight')
   @SubscribeMessage('pick:light')
   handlePickHighlight(
