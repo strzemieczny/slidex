@@ -334,7 +334,7 @@ export default function ScanOutApp() {
     const colsCount = activeRack?.totalColumns || 6;
 
     return (
-        <div className="h-screen w-full bg-bw-navy text-bw-sand p-1.5 sm:p-2.5 font-sans select-none flex flex-col justify-between overflow-hidden relative">
+        <div className="scanner-view min-h-dvh w-full bg-bw-navy text-bw-sand p-3 sm:p-4 font-sans select-none flex flex-col justify-between relative">
             <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full overflow-y-auto pr-0.5">
                 {/* NAGŁÓWEK */}
                 <header className="flex items-center justify-between border-b border-slate-800 pb-1 sm:pb-2 mb-1 sm:mb-2 shrink-0">
@@ -484,7 +484,7 @@ export default function ScanOutApp() {
                                         }}
                                         className={`flex-1 min-w-[65px] sm:min-w-[75px] py-1 sm:py-2 px-1.5 sm:px-2 rounded-md sm:rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all ${
                                             isSelected
-                                                ? 'bg-bw-cyan text-slate-950 border-white ring-1 sm:ring-2 ring-bw-cyan font-black shadow-[0_0_10px_rgba(46,250,217,0.5)]'
+                                                ? 'bg-bw-cyan text-slate-950 border-bw-cyan font-black shadow-[inset_0_0_0_2px_rgba(255,255,255,0.45)]'
                                                 : hasPN
                                                     ? 'bg-bw-cyan/20 text-bw-cyan border-bw-cyan/60 animate-pulse font-bold'
                                                     : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 font-medium'
@@ -534,7 +534,7 @@ export default function ScanOutApp() {
                                                     key={colNum}
                                                     className={`h-4 sm:h-5.5 rounded flex items-center justify-center font-mono text-[7px] sm:text-[8px] font-bold border transition-all ${
                                                         isTarget
-                                                            ? 'bg-bw-cyan text-slate-950 border-white font-black scale-105 shadow-[0_0_12px_#2EFAD9] animate-bounce z-10'
+                                                            ? 'bg-bw-cyan text-slate-950 border-bw-cyan font-black shadow-[inset_0_0_0_2px_rgba(255,255,255,0.5)] z-10'
                                                             : hasStock
                                                                 ? 'bg-slate-800 text-slate-300 border-slate-700'
                                                                 : 'bg-slate-900/40 text-slate-700 border-slate-900/60'

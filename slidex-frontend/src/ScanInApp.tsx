@@ -17,7 +17,8 @@ import {
     ArrowLeft,
     X,
     QrCode,
-    Scan
+    Scan,
+    Map
 } from 'lucide-react';
 
 const socket = io(API_BASE_URL, {
@@ -434,14 +435,14 @@ export default function ScanInApp() {
     };
 
     const scannedLane = activeRack
-        ? activeRack.lanes.find((l) => l.code === laneCode.trim())
+        ? activeRack.lanes.find((l) => l.code.toUpperCase().trim() === laneCode.toUpperCase().trim())
         : null;
 
     const shelvesCount = activeRack?.totalShelves || 4;
     const colsCount = activeRack?.totalColumns || 6;
 
     return (
-        <div className="h-screen w-full bg-bw-navy text-bw-sand p-1.5 sm:p-2.5 font-sans select-none flex flex-col justify-between overflow-hidden relative">
+        <div className="scanner-view min-h-dvh w-full bg-bw-navy text-bw-sand p-3 sm:p-4 font-sans select-none flex flex-col justify-between relative">
             <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full overflow-y-auto pr-0.5">
                 {/* HEADER */}
                 <header className="flex items-center justify-between border-b border-slate-800 pb-1 sm:pb-2 mb-1 sm:mb-2 shrink-0">
@@ -572,6 +573,57 @@ export default function ScanInApp() {
                     </select>
                 </div>
 
+                {/* MAPA STREFY / WYBÓR REGAŁU */}
+                {filteredRacks.length > 0 && (
+                    <div className="bg-slate-950/90 p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border border-slate-800 mb-1 sm:mb-2 shrink-0">
+                        <div className="flex items-center justify-between mb-1 text-[8px] sm:text-[9px] font-mono text-slate-400">
+                            <span className="font-bold uppercase tracking-wider text-bw-cyan flex items-center gap-1">
+                                <Map className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                <span>MAPA STREFY ({filteredRacks.length} REGAŁY)</span>
+                            </span>
+                            <span className="text-[7px] sm:text-[8px] text-slate-500">ZMIENIAJ REGAŁ</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto p-0.5">
+                            {filteredRacks.map((rack) => {
+                                const isSelected = rack.code === activeRack?.code;
+                                const formattedPN = partNumber.toUpperCase().trim();
+                                const hasPN = Boolean(formattedPN) && rack.lanes.some((lane) =>
+                                    lane.materials?.some((material) => material.partNumber.toUpperCase().trim() === formattedPN)
+                                );
+
+                                return (
+                                    <button
+                                        type="button"
+                                        key={rack.id}
+                                        onClick={() => {
+                                            setSelectedRackCode(rack.code);
+                                            setLaneCode('');
+                                            socket.emit('pick:highlight', {
+                                                type: 'IN',
+                                                groupId: assignedGroupId === 'ALL' ? undefined : assignedGroupId,
+                                                rackCode: rack.code,
+                                                partNumber: formattedPN,
+                                                targetLaneCode: '',
+                                            });
+                                        }}
+                                        className={`flex-1 min-w-[65px] sm:min-w-[75px] py-1 sm:py-2 px-1.5 sm:px-2 rounded-md sm:rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all ${
+                                            isSelected
+                                                ? 'bg-bw-cyan text-slate-950 border-bw-cyan font-black shadow-[inset_0_0_0_2px_rgba(255,255,255,0.45)]'
+                                                : hasPN
+                                                    ? 'bg-bw-cyan/20 text-bw-cyan border-bw-cyan/60 animate-pulse font-bold'
+                                                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 font-medium'
+                                        }`}
+                                    >
+                                        {isSelected ? <Target className="w-3 h-3 sm:w-3.5 sm:h-3.5 mb-0.5 text-slate-950" /> : <Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 mb-0.5 text-slate-400" />}
+                                        <span className="text-[9px] sm:text-[10px] font-mono tracking-wider truncate max-w-full">{rack.code}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
                 {/* SUGEROWANY TOR */}
                 {suggestedLane ? (
                     <div className="bg-bw-cyan text-slate-950 p-1.5 sm:p-2 rounded-lg sm:rounded-xl mb-1 sm:mb-2 border-2 border-white shadow-[0_0_12px_#2EFAD9] flex items-center justify-between animate-pulse shrink-0">
@@ -630,7 +682,7 @@ export default function ScanInApp() {
                                                     key={colNum}
                                                     className={`h-4 sm:h-5.5 rounded flex items-center justify-center font-mono text-[7px] sm:text-[8px] font-bold border transition-all ${
                                                         isTarget
-                                                            ? 'bg-bw-cyan text-slate-950 border-white font-black scale-105 shadow-[0_0_12px_#2EFAD9] animate-bounce z-10'
+                                                            ? 'bg-bw-cyan text-slate-950 border-bw-cyan font-black shadow-[inset_0_0_0_2px_rgba(255,255,255,0.5)] z-10'
                                                             : hasStock
                                                                 ? 'bg-slate-800 text-slate-300 border-slate-700'
                                                                 : 'bg-slate-900/40 text-slate-700 border-slate-900/60'

@@ -9,6 +9,7 @@ const ScanInApp = lazy(() => import('./ScanInApp'));
 const ScanOutApp = lazy(() => import('./ScanOutApp'));
 const ScannerMenu = lazy(() => import('./ScannerHome'));
 const ScanInventory = lazy(() => import('./ScannerInventory'));
+const ScannerAudit = lazy(() => import('./ScannerAudit'));
 const DashboardCombined = lazy(() => import('./DashboardCombined'));
 const Config = lazy(() => import('./Config'));
 
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/dashboardCombined" element={<DashboardCombined />} />
           <Route path="/scanner" element={<ScannerMenu />} />
           <Route path="/scanner/inventory" element={<ScanInventory />} />
+          <Route path="/scanner/audit" element={<ScannerAudit />} />
           <Route path="/scanner/scan-in" element={<ScanInApp />} />
           <Route path="/scanner/scan-out" element={<ScanOutApp />} />
         </Routes>

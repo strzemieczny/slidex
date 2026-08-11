@@ -11,3 +11,65 @@
     --color-bw-gray: #6b7280;
     --color-bw-dark: #111827;
 }
+
+/* Scanner terminals are commonly used at arm's length and in uneven warehouse
+   lighting. Keep their dense layout, but never sacrifice legibility to make the
+   whole workflow fit into a single viewport. */
+.scanner-view {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    line-height: 1.4;
+    background-image:
+        radial-gradient(circle at 50% -20%, rgb(46 250 217 / 0.08), transparent 34rem);
+}
+
+.scanner-view .text-\[7px\] { font-size: 0.625rem; }
+.scanner-view .text-\[8px\] { font-size: 0.6875rem; }
+.scanner-view .text-\[9px\] { font-size: 0.75rem; }
+.scanner-view .text-\[10px\] { font-size: 0.8125rem; }
+.scanner-view .text-\[11px\] { font-size: 0.875rem; }
+
+.scanner-view input,
+.scanner-view select {
+    min-height: 2.75rem;
+    font-size: max(1rem, 16px);
+    line-height: 1.25;
+}
+
+.scanner-view button,
+.scanner-view a {
+    touch-action: manipulation;
+}
+
+.scanner-view button:focus-visible,
+.scanner-view a:focus-visible {
+    outline: 3px solid rgb(46 250 217 / 0.85);
+    outline-offset: 2px;
+}
+
+.scanner-view input:focus-visible,
+.scanner-view select:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.scanner-view .text-slate-500 { color: #94a3b8; }
+.scanner-view .text-slate-400 { color: #cbd5e1; }
+.scanner-view .border-slate-800 { border-color: #334155; }
+
+.scanner-view ::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}
+
+@media (max-width: 639px) {
+    .scanner-view {
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+
+    .scanner-view header {
+        padding-top: max(0.25rem, env(safe-area-inset-top));
+    }
+}

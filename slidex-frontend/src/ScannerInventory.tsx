@@ -242,8 +242,8 @@ export default function ScanInventory() {
     );
 
     return (
-        <div className="h-screen w-full bg-bw-navy text-bw-sand p-1.5 sm:p-3 font-sans select-none flex flex-col justify-between overflow-hidden">
-            <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full overflow-hidden">
+        <div className="scanner-view min-h-dvh w-full bg-bw-navy text-bw-sand p-3 sm:p-5 font-sans select-none">
+            <div className="flex flex-col max-w-4xl mx-auto w-full min-h-[calc(100dvh-1.5rem)]">
                 {/* NAGŁÓWEK */}
                 <header className="flex items-center justify-between border-b border-slate-800 pb-1 sm:pb-2 mb-1.5 sm:mb-2 shrink-0">
                     <div className="flex items-center gap-1.5 sm:gap-2">

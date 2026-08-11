@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { API_BASE_URL } from './config/api';
+import './DashboardTV.css';
+import AuditDashboardOverlay, { type AuditStatus } from './components/AuditDashboardOverlay';
 
 import {
     Sun,
     Moon,
     ArrowLeft,
     Building2,
-    BarChart3,
+    List,
     RefreshCw,
     LogIn,
     LogOut,
@@ -109,6 +111,7 @@ export default function DashboardCombined() {
     const [highlightedPartNumber, setHighlightedPartNumber] = useState<string | null>(null);
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [alarm, setAlarm] = useState<{ message: string; laneCode: string } | null>(null);
+    const [auditStatus, setAuditStatus] = useState<AuditStatus | null>(null);
 
     const fetchGroups = async (): Promise<void> => {
         try {
@@ -220,6 +223,9 @@ export default function DashboardCombined() {
             });
             setTimeout(() => setAlarm(null), 10000);
         };
+        const handleAuditStatus = (data: AuditStatus) => {
+            setAuditStatus((current) => data.active ? data : current?.rackId === data.rackId ? null : current);
+        };
 
         socket.on('connect', handleConnect);
         socket.on('disconnect', handleDisconnect);
@@ -229,6 +235,7 @@ export default function DashboardCombined() {
         socket.on('put:highlight', handleHighlight);
         socket.on('scanin:highlight', handleHighlight);
         socket.on('fifo:violation', handleViolation);
+        socket.on('audit:status', handleAuditStatus);
 
         if (socket.connected) setIsConnected(true);
 
@@ -240,6 +247,7 @@ export default function DashboardCombined() {
             socket.off('put:highlight', handleHighlight);
             socket.off('scanin:highlight', handleHighlight);
             socket.off('fifo:violation', handleViolation);
+            socket.off('audit:status', handleAuditStatus);
         };
     }, []);
 
@@ -281,8 +289,6 @@ export default function DashboardCombined() {
         return result.sort((a, b) => b.totalQty - a.totalQty);
     })();
 
-    const maxPNQuantity = partNumberStats.length > 0 ? partNumberStats[0].totalQty : 1;
-
     const theme = {
         bg: isLight ? 'bg-slate-100 text-slate-900' : 'bg-[#0A0E1A] text-slate-100',
         headerBorder: isLight ? 'border-slate-200' : 'border-slate-800/80',
@@ -299,7 +305,7 @@ export default function DashboardCombined() {
     };
 
     return (
-        <div className={`min-h-screen w-full p-3 lg:p-6 font-sans select-none flex flex-col justify-between overflow-x-hidden transition-colors duration-300 relative ${theme.bg}`}>
+        <div className={`dashboard-tv ${auditStatus?.active && (selectedGroupId === 'ALL' || auditStatus.groupId === selectedGroupId) ? 'dashboard-audit-active' : ''} min-h-screen w-full p-3 lg:p-6 font-sans select-none flex flex-col justify-between overflow-x-hidden transition-colors duration-300 relative ${theme.bg}`}>
             <style>{`
         @keyframes cinematicZoomIn {
           0% { opacity: 0; transform: scale3d(0.98, 0.98, 1); }
@@ -406,7 +412,7 @@ export default function DashboardCombined() {
                 </header>
 
                 {/* BANER STATUSOWY */}
-                <div className="mb-4 h-14 flex items-center justify-between gap-3 w-full">
+                <div className="dashboard-tv__status mb-4 h-14 flex items-center justify-between gap-3 w-full">
                     <div className="flex-1 h-full">
                         {highlightedPartNumber ? (
                             <div className="w-full h-full bg-bw-cyan text-slate-950 font-black text-xs sm:text-sm lg:text-base px-4 rounded-xl border-2 border-white flex items-center justify-between shadow-[0_0_20px_rgba(46,250,217,0.3)]">
@@ -452,7 +458,7 @@ export default function DashboardCombined() {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-2 lg:gap-3 h-full shrink-0">
+                    <div className="dashboard-tv__totals flex items-center gap-2 lg:gap-3 h-full shrink-0">
                         <div className={`h-full px-4 rounded-xl border flex flex-col justify-center text-right ${theme.innerBg} ${isLight ? 'border-teal-300' : 'border-bw-cyan/40'}`}>
                             <span className={`text-[9px] uppercase font-mono font-extrabold tracking-wider ${theme.textSecondary}`}>Łącznie Sztuk</span>
                             <strong className={`font-mono text-base lg:text-xl font-black ${isLight ? 'text-teal-700' : 'text-bw-cyan'}`}>{totalPiecesInGroup} szt.</strong>
@@ -525,7 +531,8 @@ export default function DashboardCombined() {
                             )}
 
                             {/* WIDOK SZCZEGÓŁOWY REGAŁU */}
-                            <div className={`animate-zoom-in p-4 lg:p-5 rounded-2xl border-2 overflow-x-auto w-full ${theme.cardBg} ${isLight ? 'border-teal-400' : 'border-bw-cyan/40'}`}>
+                            <div className={`relative animate-zoom-in p-4 lg:p-5 rounded-2xl border-2 overflow-x-auto w-full ${auditStatus?.active && auditStatus.rackId === activeRack.id ? 'dashboard-rack-card--audit' : ''} ${theme.cardBg} ${isLight ? 'border-teal-400' : 'border-bw-cyan/40'}`}>
+                                {auditStatus?.active && auditStatus.rackId === activeRack.id && <AuditDashboardOverlay audit={auditStatus} />}
                                 <div className={`flex items-center justify-between mb-4 pb-3 border-b ${theme.cardBorder}`}>
                                     <div className="flex items-center gap-3">
                                         <Building2 className="w-6 h-6 text-bw-cyan" />
@@ -683,15 +690,16 @@ export default function DashboardCombined() {
                         </div>
                     ) : (
                         /* WIDOK OGÓLNY REGAŁÓW (KAFELKI) */
-                        <div className="grid grid-cols-[repeat(auto-fit,minmax(290px,1fr))] gap-4 lg:gap-5 w-full animate-zoom-in">
+                        <div className="dashboard-tv__rack-grid grid grid-cols-[repeat(auto-fit,minmax(290px,1fr))] gap-4 lg:gap-5 w-full animate-zoom-in">
                             {filteredRacks.map((rack) => (
                                 <div
                                     key={rack.id}
                                     onClick={() => setSelectedRackCode(rack.code)}
-                                    className={`p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${theme.cardBg} ${theme.cardBorder} hover:scale-[1.01] ${
+                                    className={`dashboard-tv__rack-card relative overflow-hidden p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${auditStatus?.active && auditStatus.rackId === rack.id ? 'dashboard-rack-card--audit' : ''} ${theme.cardBg} ${theme.cardBorder} hover:scale-[1.01] ${
                                         isLight ? 'hover:border-teal-500 hover:shadow-md' : 'hover:border-bw-cyan hover:shadow-xl'
                                     }`}
                                 >
+                                    {auditStatus?.active && auditStatus.rackId === rack.id && <AuditDashboardOverlay audit={auditStatus} />}
                                     <div className={`flex items-center justify-between mb-2.5 pb-2 border-b ${theme.cardBorder}`}>
                                         <span className={`text-xs lg:text-sm font-mono font-black ${isLight ? 'text-teal-700' : 'text-bw-cyan'}`}>{rack.code}</span>
                                         <h3 className={`text-xs lg:text-sm font-black ${theme.textPrimary}`}>{rack.name}</h3>
@@ -711,7 +719,7 @@ export default function DashboardCombined() {
                                                         return (
                                                             <div
                                                                 key={colNum}
-                                                                className={`h-11 sm:h-12 lg:h-14 rounded-lg flex items-center justify-center font-mono font-black transition-all duration-200 overflow-hidden text-center p-1 ${
+                                                                className={`dashboard-tv__lane h-11 sm:h-12 lg:h-14 rounded-lg flex items-center justify-center font-mono font-black transition-all duration-200 overflow-hidden text-center p-1 ${
                                                                     isHighlightedByChart
                                                                         ? `bg-bw-cyan text-slate-950 font-black border border-white z-10 animate-pulse shadow-[0_0_15px_#2EFAD9]`
                                                                         : highlightedPartNumber
@@ -724,7 +732,7 @@ export default function DashboardCombined() {
                                                                 {hasStock ? (
                                                                     <AutoFitText text={lanePN || 'OK'} />
                                                                 ) : (
-                                                                    <span className="text-slate-500/50">•</span>
+                                                                    <span className="text-[11px] lg:text-sm text-slate-500 font-mono font-black">S{shelfNum}-C{colNum}</span>
                                                                 )}
                                                             </div>
                                                         );
@@ -738,18 +746,18 @@ export default function DashboardCombined() {
                         </div>
                     )}
 
-                    {/* WYKRES SŁUPKOWY PER PART NUMBER */}
+                    {/* CZYTELNA LISTA PN — ILOŚĆ */}
                     {!activeRack && partNumberStats.length > 0 && (
-                        <div className={`p-4 lg:p-6 rounded-2xl border-2 w-full animate-zoom-in mt-6 transition-colors duration-300 ${theme.cardBg} ${theme.cardBorder}`}>
+                        <div className={`dashboard-tv__chart p-4 lg:p-6 rounded-2xl border-2 w-full animate-zoom-in mt-6 transition-colors duration-300 ${theme.cardBg} ${theme.cardBorder}`}>
                             <div className={`flex items-center justify-between mb-4 pb-3 border-b flex-wrap gap-2 ${theme.cardBorder}`}>
                                 <div className="flex items-center gap-2.5">
-                                    <BarChart3 className="w-5 h-5 text-bw-cyan" />
+                                    <List className="w-5 h-5 text-bw-cyan" />
                                     <div>
                                         <h3 className={`text-sm lg:text-base font-black tracking-wide ${theme.textPrimary}`}>
-                                            STATYSTYKA STREFY • STANY MATERIAŁOWE PER PART NUMBER
+                                            STAN MATERIAŁÓW • PART NUMBER — ILOŚĆ
                                         </h3>
                                         <span className={`text-xs font-mono block ${theme.textSecondary}`}>
-                                            Kliknij na słupek, aby podświetlić lokalizację danego Part Numberu
+                                            Kliknij pozycję, aby podświetlić lokalizację Part Numberu
                                         </span>
                                     </div>
                                 </div>
@@ -761,59 +769,35 @@ export default function DashboardCombined() {
                                 </span>
                             </div>
 
-                            <div className="overflow-x-auto pb-2 pt-1">
-                                <div className={`flex items-end gap-3 lg:gap-4 min-w-max h-[210px] lg:h-[260px] pt-8 pb-2 px-3 border-b-2 ${theme.cardBorder}`}>
+                            <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-2 items-stretch">
                                     {partNumberStats.map((item) => {
-                                        const heightPercentage = Math.round((item.totalQty / maxPNQuantity) * 100);
                                         const isSelected = highlightedPartNumber === item.partNumber;
 
                                         return (
-                                            <div
+                                            <button
                                                 key={item.partNumber}
                                                 onClick={() => setHighlightedPartNumber(isSelected ? null : item.partNumber)}
-                                                className={`flex flex-col items-center h-full justify-end min-w-[100px] lg:min-w-[125px] group cursor-pointer transition-transform duration-200 ${
-                                                    isSelected ? '-translate-y-1 z-10' : 'hover:-translate-y-0.5'
+                                                className={`dashboard-tv__pn-column px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-between gap-2 cursor-pointer transition-all duration-150 text-center min-w-0 ${
+                                                    isSelected ? 'bg-bw-cyan text-slate-950 border-white shadow-[0_0_16px_rgba(46,250,217,0.35)]' : `${theme.innerBg} ${theme.cardBorder} hover:border-bw-cyan/70`
                                                 }`}
                                             >
-                                                <div className="mb-1.5 text-center">
-                                                    <span className={`text-base lg:text-xl font-mono font-black block leading-none ${
-                                                        isSelected
-                                                            ? (isLight ? 'text-teal-800' : 'text-white')
-                                                            : (isLight ? 'text-teal-600 group-hover:text-teal-900' : 'text-bw-cyan group-hover:text-white')
-                                                    }`}>
-                                                        {item.totalQty}
+                                                <div className="h-[78px] w-full flex items-center justify-center overflow-hidden">
+                                                    <div className="flex flex-col items-center gap-1" style={{ transform: 'rotate(-90deg)' }}>
+                                                        <strong className={`font-mono text-xl lg:text-2xl font-black whitespace-nowrap ${isSelected ? 'text-slate-950' : isLight ? 'text-teal-700' : 'text-bw-cyan'}`}>{item.totalQty}</strong>
+                                                        <span className={`font-mono text-[9px] lg:text-xs font-bold ${isSelected ? 'text-slate-800' : theme.textSecondary}`}>(szt.)</span>
+                                                    </div>
+                                                </div>
+                                                <span className={`w-full flex-1 border-t pt-2 flex items-center justify-center overflow-hidden ${isSelected ? 'text-slate-950 border-slate-900/30' : `${theme.textPrimary} ${theme.cardBorder}`}`}>
+                                                    <span
+                                                        className="font-mono text-xs lg:text-sm font-black whitespace-nowrap leading-none"
+                                                        style={{ transform: 'rotate(-90deg)' }}
+                                                    >
+                                                        {item.partNumber}
                                                     </span>
-                                                    <span className={`text-[10px] font-mono font-bold uppercase block mt-0.5 tracking-wider ${theme.textSecondary}`}>
-                                                        {item.boxCount} box
-                                                    </span>
-                                                </div>
-
-                                                <div className={`w-full rounded-t-xl overflow-hidden border-x border-t transition-colors duration-200 flex flex-col justify-end h-full p-1 ${theme.innerBg} ${
-                                                    isSelected ? 'border-bw-cyan shadow-[0_0_15px_rgba(46,250,217,0.3)]' : theme.cardBorder
-                                                }`}>
-                                                    <div
-                                                        className={`w-full rounded-t-lg transition-all duration-300 ease-out ${
-                                                            isSelected
-                                                                ? 'bg-bw-cyan shadow-[0_0_15px_#2EFAD9]'
-                                                                : isLight
-                                                                    ? 'bg-teal-500 group-hover:bg-teal-400'
-                                                                    : 'bg-bw-cyan/70 group-hover:bg-bw-cyan'
-                                                        }`}
-                                                        style={{ height: `${Math.max(heightPercentage, 10)}%` }}
-                                                    />
-                                                </div>
-
-                                                <div className={`mt-2 text-center w-full h-8 py-1 px-1 rounded-xl border transition-colors duration-200 flex items-center justify-center ${
-                                                    isSelected
-                                                        ? 'bg-bw-cyan text-slate-950 border-white font-black shadow-md'
-                                                        : `${theme.innerBg} ${theme.textPrimary} ${theme.cardBorder}`
-                                                }`}>
-                                                    <AutoFitText text={item.partNumber} />
-                                                </div>
-                                            </div>
+                                                </span>
+                                            </button>
                                         );
                                     })}
-                                </div>
                             </div>
                         </div>
                     )}

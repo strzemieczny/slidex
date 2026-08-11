@@ -14,7 +14,8 @@ import {
     Save,
     Download,
     Smartphone,
-    X
+    X,
+    ClipboardCheck
 } from 'lucide-react';
 
 export interface RackGroup {
@@ -95,8 +96,8 @@ export default function ScannerMenu() {
     };
 
     return (
-        <div className="h-screen w-full bg-bw-navy text-bw-sand p-1.5 sm:p-3 font-sans select-none flex flex-col justify-between overflow-hidden">
-            <div className="max-w-md mx-auto w-full flex-1 flex flex-col justify-between overflow-y-auto pr-0.5">
+        <div className="scanner-view min-h-dvh w-full bg-bw-navy text-bw-sand p-3 sm:p-5 font-sans select-none">
+            <div className="max-w-lg mx-auto w-full min-h-[calc(100dvh-1.5rem)] flex flex-col justify-between">
                 <div>
                     {/* NAGŁÓWEK */}
                     <header className="text-center pt-0.5 pb-1.5 sm:pb-2 border-b border-slate-800 shrink-0">
@@ -251,6 +252,23 @@ export default function ScannerMenu() {
                             </a>
 
                             {/* 3. INVENTORY & LOCATOR */}
+                            <a
+                                href="/scanner/audit"
+                                className="group relative bg-amber-500/10 hover:bg-amber-500/15 border border-amber-400/50 hover:border-amber-300 p-2 sm:p-3 rounded-xl flex items-center justify-between shadow-lg transition-all duration-300 active:scale-98 overflow-hidden block"
+                            >
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-400/10 border border-amber-400/30 rounded-lg flex items-center justify-center shrink-0">
+                                        <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+                                    </div>
+                                    <div>
+                                        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-amber-300 block leading-tight">PEŁNY SPIS REGAŁU</span>
+                                        <h2 className="text-xs sm:text-sm font-black text-white leading-tight">AUDIT MODE</h2>
+                                    </div>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-amber-300 shrink-0" />
+                            </a>
+
+                            {/* 4. INVENTORY & LOCATOR */}
                             <a
                                 href="/scanner/inventory"
                                 className="group relative bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-bw-cyan p-2 sm:p-3 rounded-xl flex items-center justify-between shadow-lg transition-all duration-300 active:scale-98 overflow-hidden block"
