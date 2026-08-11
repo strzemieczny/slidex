@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 
-import ScannerMenu from './ScannerHome';
-import ScanInApp from './ScanInApp';
-import ScanOutApp from './ScanOutApp';
-import ScanInventory from './ScannerInventory';
-import DashboardIn from './DashboardIn';
-import DashboardOut from './DashboardOut';
-import AutoUpdateModel from './components/AutoUpdateModel';
+const ScannerMenu = lazy(() => import('./ScannerHome'));
+const ScanInApp = lazy(() => import('./ScanInApp'));
+const ScanOutApp = lazy(() => import('./ScanOutApp'));
+const ScanInventory = lazy(() => import('./ScannerInventory'));
+const DashboardIn = lazy(() => import('./DashboardIn'));
+const DashboardOut = lazy(() => import('./DashboardOut'));
+const AutoUpdateModel = lazy(() => import('./components/AutoUpdateModel'));
 
 export default function App() {
   const [pathname, setPathname] = useState<string>(window.location.pathname);
@@ -67,10 +67,12 @@ export default function App() {
   return (
       <>
         {/* Active Screen */}
-        {renderCurrentView()}
+        <Suspense fallback={null}>{renderCurrentView()}</Suspense>
 
         {/* 🚀 Modal aktualizacji montowany ZAWSZE, niezależnie od podstrony */}
-        <AutoUpdateModel />
+        <Suspense fallback={null}>
+          <AutoUpdateModel />
+        </Suspense>
       </>
   );
 }
